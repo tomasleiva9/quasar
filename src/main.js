@@ -3,6 +3,8 @@
 // 1. use next line to activate CUSTOM STYLE (./src/themes)
 // require(`./themes/app.${__THEME}.styl`)
 // 2. or, use next line to activate DEFAULT QUASAR STYLE
+
+/* eslint-disable */
 require(`quasar/dist/quasar.${__THEME}.css`)
 // ==============================
 

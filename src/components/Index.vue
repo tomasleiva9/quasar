@@ -1,43 +1,92 @@
 <template>
-  <q-layout>
-    <div slot="header" class="toolbar">
-      <q-toolbar-title :padding="0">
-        Quasar Framework v{{$q.version}}
-      </q-toolbar-title>
-    </div>
+    <div>
+        <div class="toolbar">
+              <button class="hide-on-drawer-visible"
+                      @click="$refs.leftDrawer.open()" >
+                  <i>menu</i>
+              </button>
+              <q-toolbar-title :padding="1">
+                  Notícias
+                </q-toolbar-title>
+              <button>
+                  <i>mail</i>
+              </button>
 
-    <!--
-      Replace following "div" with
-      "<router-view class="layout-view">" component
-      if using subRoutes
-    -->
-    <div class="layout-view">
-      <div class="logo-container non-selectable no-pointer-events">
-        <div class="logo" :style="position">
-          <img src="~assets/quasar-logo.png">
-          <p class="caption text-center">
-            <span class="desktop-only">Move your mouse.</span>
-            <span class="touch-only">Touch screen and move.</span>
-          </p>
+              <q-drawer ref="leftDrawer">
+                  <div class="toolbar light">
+                      <q-toolbar-title :padding="1">
+                          Menu
+                      </q-toolbar-title>
+                  </div>
+
+                  <div class="list no-border platform-delimiter">
+                      <div class="list-label">Dados</div>
+                      <q-drawer-link icon="account_box" to="/home" exact style="color: #333">
+                          Tomás Leiva
+                      </q-drawer-link>
+                      <q-drawer-link icon="account_balance" to="/home" exact style="color: #333">
+                          Governo de São Paulo
+                      </q-drawer-link>
+                      <hr>
+
+                      <div class="list-label">Conteúdos</div>
+                      <q-drawer-link icon="view_stream" to="/" style="color: #333">
+                          Notícias
+                        </q-drawer-link>
+                      <q-drawer-link icon="book" to="/book" style="color: #333">
+                          Books
+                      </q-drawer-link>
+                      <hr>
+
+                      <div class="list-label">Ajustes</div>
+                      <q-drawer-link icon="settings" to="/config" style="color: #333">
+                          Configurações
+                        </q-drawer-link>
+                  </div>
+              </q-drawer>
+
+          </div>
+        <div>
+            <q-pull-to-refresh :handler="update" pull-message=" " release-message=" " refresh-message="Atualizando...">
+                <div class="layout-padding">
+
+                    <div class="text-center" style="margin-bottom: 10px">
+                        {{news.length}} notícias
+                    </div>
+
+                    <q-infinite-scroll :handler="refresher">
+
+                        <div class="card" v-for="item in news">
+                            <div class="card-title">
+                                {{item.Titulo}}
+                      </div>
+                            <div class="card-content">
+                                {{item.Conteudo}}
+                      </div>
+                        </div>
+
+                        <div class="text-center">
+                            <spinner slot="message" name="dots" :size="40"></spinner>
+                        </div>
+                    </q-infinite-scroll>
+                </div>
+
+            </q-pull-to-refresh>
+
         </div>
-      </div>
     </div>
-  </q-layout>
 </template>
 
-<script>
-var moveForce = 30
-var rotateForce = 40
 
-import { Utils } from 'quasar'
+<script>
+import axios from 'axios'
 
 export default {
   data () {
     return {
-      moveX: 0,
-      moveY: 0,
-      rotateY: 0,
-      rotateX: 0
+      take: 10,
+      skip: 0,
+      news: []
     }
   },
   computed: {
@@ -53,41 +102,47 @@ export default {
     }
   },
   methods: {
-    move (event) {
-      const {width, height} = Utils.dom.viewport()
-      const {top, left} = Utils.event.position(event)
-      const halfH = height / 2
-      const halfW = width / 2
-
-      this.moveX = (left - halfW) / halfW * -moveForce
-      this.moveY = (top - halfH) / halfH * -moveForce
-      this.rotateY = (left / width * rotateForce * 2) - rotateForce
-      this.rotateX = -((top / height * rotateForce * 2) - rotateForce)
+    update (done) {
+      const _this = this
+      _this.skip = 0
+      this.getNews().then(function (response) {
+        _this.news = response.data.Noticias
+        _this.skip += _this.take
+        done()
+      })
+    },
+    refresher (index, done) {
+      const _this = this
+      this.getNews().then(function (response) {
+        response.data.Noticias.forEach(function (item, idx) {
+          _this.news.push(item)
+        })
+        _this.skip += _this.take
+        done()
+      })
+    },
+    getNews () {
+      return axios.get('http://cloud.boxnet.com.br/api/Noticia/MVC', {
+        params: {
+          midias: '',
+          secoes: '',
+          fontes: '',
+          avaliacoes: '',
+          opcoesAdicionais: '',
+          dataInicial: '',
+          dataFinal: '',
+          expressao: '',
+          porDataVeiculacao: false,
+          expressaoTitulo: false,
+          ordem: 1,
+          apenasLiberadas: false,
+          skip: this.skip,
+          take: this.take,
+          idProdutoMvc: 112,
+          idAtributo: ''
+        }
+      })
     }
-  },
-  mounted () {
-    this.$nextTick(() => {
-      document.addEventListener('mousemove', this.move)
-      document.addEventListener('touchmove', this.move)
-    })
-  },
-  beforeDestroy () {
-    document.removeEventListener('mousemove', this.move)
-    document.removeEventListener('touchmove', this.move)
   }
 }
 </script>
-
-<style lang="styl">
-.logo-container
-  width 192px
-  height 268px
-  perspective 800px
-  position absolute
-  top 50%
-  left 50%
-  transform translateX(-50%) translateY(-50%)
-.logo
-  position absolute
-  transform-style preserve-3d
-</style>
